@@ -76,6 +76,7 @@
 - [image-builder](https://github.com/kubernetes-sigs/image-builder) - Cluster API 노드 이미지를 만드는 Packer·Ansible 도구. *폐쇄망:* `disable_public_repos`와 `extra_repos`로 패키지 설치를 내부 미러로 돌리고, `additional_registry_images`로 이미지를 노드 이미지에 미리 넣습니다.
 - [kured](https://github.com/kubereboot/kured) - OS가 필요로 할 때 노드를 안전하게 재부팅하는 DaemonSet. *폐쇄망:* 직접 설정한 알림 URL이나 Prometheus 엔드포인트 외에는 외부 호출을 하지 않습니다.
 - [Metal3](https://github.com/metal3-io/ironic-image) - Ironic 기반의 Kubernetes·Cluster API용 베어메탈 프로비저닝. *폐쇄망:* Ironic 이미지가 배포 커널과 램디스크에 `file://` URL을 받으므로 프로비저닝 에이전트를 로컬에서 제공할 수 있습니다.
+- [Tinkerbell](https://github.com/tinkerbell/tinkerbell) - 물리 서버를 네트워크 부팅해 설치하는 베어메탈 프로비저닝 엔진. *폐쇄망:* Helm 차트가 부팅 아티팩트를 `ghcr.io/tinkerbell/captain/artifacts` OCI 이미지에서 제공하고, 선택 기능인 HookOS 다운로드 URL의 기본값이 GitHub 릴리스이므로 둘 다 미러링해야 합니다.
 
 ## 보안과 공급망
 
@@ -88,6 +89,8 @@
 - [Notation](https://github.com/notaryproject/notation) - Notary Project 형식으로 OCI 아티팩트를 서명·검증하는 CLI. *폐쇄망:* 레지스트리 없이 로컬 OCI 레이아웃을 검증할 수 있고(실험 기능), OCSP·CRL 폐기 확인에는 네트워크가 필요하므로 폐쇄망에서는 신뢰 정책에서 revocation을 `skip`으로 둡니다.
 - [Kyverno](https://github.com/kyverno/kyverno) - 이미지 검증 기능을 갖춘 Kubernetes 네이티브 정책 엔진. *폐쇄망:* 이미지 검증은 레지스트리에 접근해야 하며, Sigstore 검증은 `rekor.ignoreTlog`, `ctlog.ignoreSCT`, 공개 키 직접 지정, TUF 미러로 오프라인에 맞출 수 있습니다.
 - [Falco](https://github.com/falcosecurity/falco) - 컨테이너와 호스트 런타임 위협 탐지. *폐쇄망:* 기본 modern eBPF 프로브는 드라이버 다운로드가 필요 없지만, Helm 차트가 기본으로 `falcoctl`을 실행해 공개 인덱스에서 룰을 받고 추적하므로 끄거나 자체 OCI 레지스트리로 지정합니다.
+- [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) - 제약(constraint) 리소스로 OPA 정책을 강제하는 어드미션 컨트롤러. *폐쇄망:* Helm 차트가 컨트롤러·CRD 이미지를 Docker Hub에서 받고, 기본으로 `curlimages/curl` 이미지로 설치 후 웹훅 점검 잡을 실행하므로 세 이미지 모두 미러링해야 합니다.
+- [Ratify](https://github.com/notaryproject/ratify) - 배포 전에 이미지 서명과 증명을 검사하는 검증 엔진. *폐쇄망:* Cosign 검증기가 기본으로 공개 Rekor 투명성 로그를 확인하므로 `tLogVerify: false`로 끄거나 `rekorURL`을 내부 Rekor로 지정합니다.
 
 ## 빌드와 배포
 
@@ -106,12 +109,17 @@
 - [Grafana](https://github.com/grafana/grafana) - 메트릭·로그·트레이스 대시보드와 시각화. *폐쇄망:* 사용량 보고, 업데이트 확인, 뉴스 피드, Gravatar, 외부 스냅샷, 온라인 플러그인 카탈로그가 기본으로 켜져 있으므로 `grafana.ini`에서 끄고 플러그인은 이미지나 플러그인 디렉터리에 넣어 배포합니다.
 - [Loki](https://github.com/grafana/loki) - 수평 확장형 로그 수집 시스템. *폐쇄망:* 기본으로 `stats.grafana.org`에 사용량 보고를 보내므로 `analytics.reporting_enabled: false`로 끕니다.
 - [Grafana Alloy](https://github.com/grafana/alloy) - Prometheus 파이프라인을 포함한 OpenTelemetry 컬렉터 배포판. *폐쇄망:* 기본으로 익명 사용량을 보고하므로 `--disable-reporting`으로 실행합니다.
+- [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector) - 트레이스·메트릭·로그를 수신·처리·전송하는 벤더 중립 파이프라인. *폐쇄망:* 자체 메트릭은 8888 포트로 로컬에만 노출되고, Helm 차트에는 기본 `image.repository`가 없으므로 미러링한 컬렉터 이미지로 지정해야 합니다.
+- [Fluent Bit](https://github.com/fluent/fluent-bit) - 로그·메트릭·트레이스를 수집·전달하는 경량 에이전트. *폐쇄망:* Helm 차트가 `cr.fluentbit.io`에서 이미지를 받고 `busybox:latest`와 `pullPolicy: Always`를 쓰는 테스트 파드를 기본으로 켜므로, 미러링하거나 `testFramework.enabled: false`로 끕니다.
 
 ## 백업과 재해 복구
 
 - [Velero](https://github.com/velero-io/velero) - Kubernetes 리소스와 영구 볼륨의 백업·복원·마이그레이션. *폐쇄망:* 온프레미스 문서에 미러링할 Velero·플러그인·restore-helper 이미지가 나와 있으며, 망 내부에 S3 호환 오브젝트 스토리지가 필요합니다.
 - [etcd snapshots](https://etcd.io/docs/v3.6/op-guide/recovery/) - Kubernetes 데이터 저장소의 내장 백업·복원. *폐쇄망:* 완전히 로컬에서 동작하며, `etcdctl snapshot save`로 스냅샷을 만들고 v3.6부터는 `etcdutl`로 복원합니다.
 - [Longhorn](https://github.com/longhorn/longhorn) - S3·NFS 백업을 지원하는 분산 블록 스토리지. *폐쇄망:* 이미지 목록과 save/load 스크립트를 포함한 공식 폐쇄망 가이드가 있고, 업그레이드 확인 기능이 기본으로 공개 서버를 호출하므로 꺼야 합니다.
+- [Kanister](https://github.com/kanisterio/kanister) - Kubernetes 애플리케이션 수준 백업·복원 프레임워크. *폐쇄망:* 설치 문서에 폐쇄망 절이 있으며, 컨트롤러와 `kanister-tools` 이미지, Blueprint가 쓰는 모든 이미지를 미러링합니다.
+- [Rook](https://github.com/rook/rook) - Kubernetes에서 Ceph를 운영하는 스토리지 오케스트레이터(S3 호환 오브젝트 스토리지 포함). *폐쇄망:* 커스텀 이미지 가이드가 폐쇄망 클러스터를 다루며, Ceph CSI 이미지는 `rook-csi-operator-image-set-configmap` ConfigMap이나 차트의 `csi` 값으로 바꿉니다.
+- [SeaweedFS](https://github.com/seaweedfs/seaweedfs) - S3 호환 API를 갖춘 분산 오브젝트·파일 저장소. *폐쇄망:* 마스터가 기본으로 `telemetry.seaweedfs.com`에 익명 클러스터 통계를 보내므로 `-telemetry=false`로 끕니다.
 
 ## 함정
 

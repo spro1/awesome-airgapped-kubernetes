@@ -76,6 +76,7 @@ Every tool entry carries an *Air-gap* note: whether the tool officially supports
 - [image-builder](https://github.com/kubernetes-sigs/image-builder) - Packer and Ansible tooling for building Cluster API node images. *Air-gap:* `disable_public_repos` with `extra_repos` switches package installs to internal mirrors, and `additional_registry_images` pre-bakes images into the node image.
 - [kured](https://github.com/kubereboot/kured) - DaemonSet that safely reboots nodes when the OS requires it. *Air-gap:* Makes outbound calls only to a notification URL or Prometheus endpoint you configure.
 - [Metal3](https://github.com/metal3-io/ironic-image) - Bare-metal host provisioning for Kubernetes and Cluster API, based on Ironic. *Air-gap:* The Ironic image accepts `file://` URLs for the deploy kernel and ramdisk, so the provisioning agent can be served locally.
+- [Tinkerbell](https://github.com/tinkerbell/tinkerbell) - Bare-metal provisioning engine that network-boots and installs physical machines. *Air-gap:* The Helm chart serves boot artifacts from the `ghcr.io/tinkerbell/captain/artifacts` OCI image, and the optional HookOS download URL defaults to GitHub releases, so both need mirroring.
 
 ## Security & Supply Chain
 
@@ -88,6 +89,8 @@ Every tool entry carries an *Air-gap* note: whether the tool officially supports
 - [Notation](https://github.com/notaryproject/notation) - CLI for signing and verifying OCI artifacts with the Notary Project format. *Air-gap:* Can verify a local OCI layout without a registry (experimental); OCSP and CRL revocation checks need network access, so disconnected setups set revocation to `skip` in the trust policy.
 - [Kyverno](https://github.com/kyverno/kyverno) - Kubernetes-native policy engine with image verification. *Air-gap:* Image verification must reach your registry, and Sigstore checks can be adapted offline with `rekor.ignoreTlog`, `ctlog.ignoreSCT`, supplied public keys, or a TUF mirror.
 - [Falco](https://github.com/falcosecurity/falco) - Runtime threat detection for containers and hosts. *Air-gap:* The default modern eBPF probe needs no driver download, but the Helm chart runs `falcoctl` by default to fetch and follow rules from public indexes, so disable it or point it at your own OCI registry.
+- [Gatekeeper](https://github.com/open-policy-agent/gatekeeper) - Admission controller that enforces OPA policies through constraint resources. *Air-gap:* The Helm chart pulls its controller and CRD images from Docker Hub and, by default, runs a post-install webhook probe with a `curlimages/curl` image, so all three need mirroring.
+- [Ratify](https://github.com/notaryproject/ratify) - Verification engine that checks image signatures and attestations before deployment. *Air-gap:* The Cosign verifier checks the public Rekor transparency log by default, so set `tLogVerify: false` or point `rekorURL` at an internal Rekor.
 
 ## Build & Deploy
 
@@ -106,12 +109,17 @@ Every tool entry carries an *Air-gap* note: whether the tool officially supports
 - [Grafana](https://github.com/grafana/grafana) - Dashboards and visualization for metrics, logs, and traces. *Air-gap:* Usage reporting, update checks, the news feed, Gravatar, external snapshots, and the online plugin catalog are on by default; disable them in `grafana.ini` and ship plugins inside the image or plugins directory.
 - [Loki](https://github.com/grafana/loki) - Horizontally scalable log aggregation system. *Air-gap:* Sends usage reports to `stats.grafana.org` by default; set `analytics.reporting_enabled: false`.
 - [Grafana Alloy](https://github.com/grafana/alloy) - OpenTelemetry collector distribution with Prometheus pipelines. *Air-gap:* Reports anonymous usage by default; start it with `--disable-reporting`.
+- [OpenTelemetry Collector](https://github.com/open-telemetry/opentelemetry-collector) - Vendor-neutral pipeline for receiving, processing, and exporting traces, metrics, and logs. *Air-gap:* Its own metrics are only exposed locally on port 8888, and the Helm chart has no default `image.repository`, so it must be set to a mirrored collector image.
+- [Fluent Bit](https://github.com/fluent/fluent-bit) - Lightweight agent for collecting and forwarding logs, metrics, and traces. *Air-gap:* The Helm chart pulls from `cr.fluentbit.io` and enables a test pod that uses `busybox:latest` with `pullPolicy: Always`, so mirror it or set `testFramework.enabled: false`.
 
 ## Backup & DR
 
 - [Velero](https://github.com/velero-io/velero) - Backup, restore, and migration of Kubernetes resources and persistent volumes. *Air-gap:* The on-premises docs list the Velero, plugin, and restore-helper images to mirror, and it needs an S3-compatible object store inside the network.
 - [etcd snapshots](https://etcd.io/docs/v3.6/op-guide/recovery/) - Built-in backup and restore for the Kubernetes datastore. *Air-gap:* Fully local: `etcdctl snapshot save` takes the snapshot and, from v3.6, `etcdutl` restores it.
 - [Longhorn](https://github.com/longhorn/longhorn) - Distributed block storage with backups to S3 or NFS. *Air-gap:* Has an official air-gap guide with an image list and save/load scripts; the upgrade checker calls a public server by default and should be disabled.
+- [Kanister](https://github.com/kanisterio/kanister) - Framework for application-level backup and restore on Kubernetes. *Air-gap:* The install docs have an air-gapped section: mirror the controller and `kanister-tools` images plus every image your Blueprints use.
+- [Rook](https://github.com/rook/rook) - Storage orchestrator that runs Ceph on Kubernetes, including S3-compatible object storage. *Air-gap:* The custom images guide covers air-gapped clusters, where Ceph CSI images are overridden through the `rook-csi-operator-image-set-configmap` ConfigMap or the chart's `csi` values.
+- [SeaweedFS](https://github.com/seaweedfs/seaweedfs) - Distributed object and file store with an S3-compatible API. *Air-gap:* The master reports anonymous cluster statistics to `telemetry.seaweedfs.com` by default; disable it with `-telemetry=false`.
 
 ## Gotchas
 
