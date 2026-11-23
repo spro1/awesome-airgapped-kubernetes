@@ -1,0 +1,24 @@
+name: Wrong or outdated information
+description: Report an incorrect Air-gap note, a broken link, or an unmaintained project.
+labels: [correction]
+body:
+  - type: input
+    id: entry
+    attributes:
+      label: Entry
+      description: Name of the entry in the list.
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link to official docs, release notes, or the repository.
+    validations:
+      required: true

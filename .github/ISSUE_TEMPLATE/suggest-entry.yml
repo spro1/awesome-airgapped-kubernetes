@@ -1,0 +1,24 @@
+name: Suggest an entry
+description: Suggest a tool, gotcha, or guide without opening a pull request.
+labels: [suggestion]
+body:
+  - type: input
+    id: link
+    attributes:
+      label: Link
+    validations:
+      required: true
+  - type: textarea
+    id: airgap
+    attributes:
+      label: Air-gap behavior
+      description: Offline install support, image lists, default outbound calls, data that needs refreshing.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Links to official docs or repository files that back the above.
+    validations:
+      required: true
